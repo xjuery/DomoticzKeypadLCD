@@ -69,7 +69,7 @@ def loop(domoticzUsername, domoticzPassword):
                 lcd.clear()             
                 lcd.setCursor(0,0)
                 myPrintLn("Entry:" + keypadBuffer)
-                domoticz.setAlarmStatus(domoticz.ARM_AWAY, keypadBuffer)
+                domoticz.toggleAlarmStatus(keypadBuffer)
                 keypadBuffer = ""
             else:
                 # otherwise display * 
