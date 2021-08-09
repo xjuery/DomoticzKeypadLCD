@@ -1,13 +1,16 @@
 import base64
 import hashlib
 import requests
-
+import re
 
 class DomoticzAPI:
     DISARMED = 0
     ARM_HOME = 1
     ARM_AWAY = 2
     UNKNOWN = 3
+
+    LOCKED = "Desactivé"
+    UNLOCKED = "Activé"
 
     def __init__(self, hostname, port, username, password):
         self.url = "http://"+hostname+":"+port+"/json.htm"
@@ -32,7 +35,6 @@ class DomoticzAPI:
         payload = ""
         requests.request("GET", self.url, data=payload, headers=self.headers, params=querystring)
 
-        
     def toggleAlarmStatus(self, alarmPassword):
         status = self.getAlarmStatus()
         
@@ -47,3 +49,28 @@ class DomoticzAPI:
                        "seccode": hashedPassword}
         payload = ""
         requests.request("GET", self.url, data=payload, headers=self.headers, params=querystring)
+
+    def getDevices(self):
+        querystring = {"type": "devices", "filter": "all", "used": "true", "order": "Name"}
+
+        response = requests.request("GET", self.url, data="", headers=self.headers, params=querystring).json()
+        devices = []
+        for device in response["result"]:
+            if(device["SwitchType"] == "Door Lock"):
+                # compute names
+                name = device["Name"]
+                try:
+                    shortName = re.search('\((.+?)\)', name).group(1)
+                except AttributeError:
+                    shortName = ''
+
+                # compute status
+                status = device["Status"]
+                if(status == "Locked"):
+                    newStatus = self.LOCKED
+                else:
+                    newStatus = self.UNLOCKED
+
+                devices.append({"name": shortName, "status": newStatus})
+
+        return devices
