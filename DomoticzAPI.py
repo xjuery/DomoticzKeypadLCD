@@ -9,8 +9,8 @@ class DomoticzAPI:
     ARM_AWAY = 2
     UNKNOWN = 3
 
-    LOCKED = "Desactivé"
-    UNLOCKED = "Activé"
+    LOCKED = "0"
+    UNLOCKED = "1"
 
     def __init__(self, hostname, port, username, password):
         self.url = "http://"+hostname+":"+port+"/json.htm"

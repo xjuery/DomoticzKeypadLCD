@@ -43,6 +43,27 @@ def myPrintLn(message):
     lcd.message( message + '\n' )
     print(message, flush=True)
 
+def displayDomoticzTitle():
+    title = "Domoticz"
+    start = int(len(title)/2)
+    lcd.clear()
+    lcd.setCursor(start, 0)
+    lcd.message(title)
+
+
+def displayDomoticzStatus(api):
+    devices = api.getDevices()
+
+    device = devices[0]
+    text = device["name"] + ' : ' + device["status"]
+    lcd.setCursor(0, 1)
+    lcd.message(text)
+
+    device = devices[1]
+    text = device["name"] + ' : ' + device["status"]
+    lcd.setCursor(16-len(text), 1)
+    lcd.message(text)
+
 def loop(domoticzUsername, domoticzPassword):
     domoticz = DomoticzAPI("192.168.1.23", "8080", domoticzUsername, domoticzPassword)
 
@@ -56,8 +77,10 @@ def loop(domoticzUsername, domoticzPassword):
     # Init LCD
     lcd.begin(16,2)
     lcd.setCursor(0,0)
+    displayDomoticzTitle()
 
     while(True):
+        displayDomoticzStatus(domoticz)
         key = keypad.getKey()
         if(key != keypad.NULL):
             # check if cancel or return
