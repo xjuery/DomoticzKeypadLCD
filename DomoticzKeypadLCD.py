@@ -4,6 +4,8 @@ import RPi.GPIO as GPIO
 import Keypad
 from PCF8574 import PCF8574_GPIO
 from Adafruit_LCD1602 import Adafruit_CharLCD
+from DomoticzAPI import DomoticzAPI
+import argparse
 
 import hashlib
 
@@ -41,17 +43,9 @@ def myPrintLn(message):
     lcd.message( message + '\n' )
     print(message, flush=True)
 
-def sendToDomoticz(password):
-    encodedPassword = hashlib.md5(password)
+def loop(domoticzUsername, domoticzPassword):
+    domoticz = DomoticzAPI("192.168.1.23", "8080", domoticzUsername, domoticzPassword)
 
-def getAlarmStatus():
-    url = "http://192.168.1.23:8080/json.htm"
-    querystring = {"type":"command","param":"getsecstatus"}
-    response = requests.request("GET", url, params=querystring)
-
-    print(response.text)
-
-def loop():
     keypadBuffer = ""
     keypad = Keypad.Keypad(keys,rowsPins,columnsPins,keypadRows,keypadColumns)
     keypad.setDebounceTime(50)
@@ -75,7 +69,7 @@ def loop():
                 lcd.clear()             
                 lcd.setCursor(0,0)
                 myPrintLn("Entry:" + keypadBuffer)
-                sendToDomoticz(keypadBuffer)
+                domoticz.setAlarmStatus(domoticz.ARM_AWAY, keypadBuffer)
                 keypadBuffer = ""
             else:
                 # otherwise display * 
@@ -86,9 +80,23 @@ def loop():
                 myPrint("*")
                 
             
-if __name__ == '__main__':     #Program start from here
+if __name__ == '__main__':
+
+    my_parser = argparse.ArgumentParser(description='List the content of a folder')
+    my_parser.add_argument('username',
+                           metavar='username',
+                           type=str,
+                           help='username')
+    my_parser.add_argument('password',
+                           metavar='password',
+                           type=str,
+                           help='password')
+
+    # Execute the parse_args() method
+    args = my_parser.parse_args()
+
     try:
-        loop()
+        loop(args.username, args.password)
     except KeyboardInterrupt:
         GPIO.cleanup()
         lcd.clear()
