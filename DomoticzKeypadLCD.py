@@ -7,31 +7,31 @@ from Adafruit_LCD1602 import Adafruit_CharLCD
 from DomoticzAPI import DomoticzAPI
 import argparse
 
-import hashlib
-
 # KeyPad parameters
 keypadRows = 4
 keypadColumns = 4
-keys =  [   '1','2','3','A',
+keys =  [
+            '1','2','3','A',
             '4','5','6','B',
             '7','8','9','C',
-            '*','0','#','D'     ]
+            '*','0','#','D'     
+        ]
 rowsPins = [12,16,18,22]
 columnsPins = [19,15,13,11]
 
-# I2C Addresses
+# LCD VARIABLES
+LCD_ROWS = 4
+LCD_COLUMNS = 20
+
+# I2C module Address
 PCF8574_address = 0x27
-PCF8574A_address = 0x3F
 
 # Init PCF8574 GPIO
 try:
     mcp = PCF8574_GPIO(PCF8574_address)
 except:
-    try:
-        mcp = PCF8574_GPIO(PCF8574A_address)
-    except:
-        print ('Error with I2C Address !')
-        exit(1)
+    print ('Error with I2C Address !')
+    exit(1)
 
 lcd = Adafruit_CharLCD(pin_rs=0, pin_e=2, pins_db=[4,5,6,7], GPIO=mcp)
 
@@ -43,43 +43,62 @@ def myPrintLn(message):
     lcd.message( message + '\n' )
     print(message, flush=True)
 
-def displayDomoticzTitle():
-    title = "Domoticz"
-    start = int(len(title)/2)
-    lcd.clear()
-    lcd.setCursor(start, 0)
-    lcd.message(title)
+def displayTitle(api, oldStatus):
+    status = api.getAlarmStatus()
 
+    if(status != oldStatus):
+        lcd.setCursor(0, 0)
+        lcd.message(" " * LCD_COLUMNS)
+
+        if(status == api.ARM_HOME):
+            title = "Alarme Activee"
+        elif(status == api.ARM_AWAY):
+            title = "Alarme Activee"
+        else:
+            title = "Alarme Desactivee"
+
+        half = int(len(title)/2)
+        lcd.setCursor(int(LCD_COLUMNS/2) - half, 0)
+        lcd.message(title)
+
+    return status
 
 def displayDomoticzStatus(api):
     devices = api.getDevices()
+    row = 1
 
-    device = devices[0]
-    text = device["name"] + ' : ' + device["status"]
-    lcd.setCursor(0, 1)
-    lcd.message(text)
+    for i in range(0, len(devices)):
+        device = devices[i]
+        text = device["name"] + ' : ' + device["status"]
+        if (i % 2) == 0:
+            lcd.setCursor(0, row)
+            lcd.message(text) 
+        else:
+            lcd.setCursor(LCD_COLUMNS-len(text), row)
+            lcd.message(text)
 
-    device = devices[1]
-    text = device["name"] + ' : ' + device["status"]
-    lcd.setCursor(16-len(text), 1)
-    lcd.message(text)
+            # Si l'index du devices est impair s'est qu'on est en bout de ligne donc on change
+            row = row + 1
 
-def loop(domoticzUsername, domoticzPassword):
-    domoticz = DomoticzAPI("192.168.1.23", "8080", domoticzUsername, domoticzPassword)
+def loop(domoticzHostname, domoticzPort, domoticzUsername, domoticzPassword):
+    domoticz = DomoticzAPI(domoticzHostname, domoticzPort, domoticzUsername, domoticzPassword)
 
     keypadBuffer = ""
     keypad = Keypad.Keypad(keys,rowsPins,columnsPins,keypadRows,keypadColumns)
     keypad.setDebounceTime(50)
+    keypadMode = False
 
     # LCD Backlight
     mcp.output(3,1)
 
     # Init LCD
-    lcd.begin(16,2)
+    lcd.begin(20,4)
     lcd.setCursor(0,0)
-    displayDomoticzTitle()
+
+    alarmStatus = ""
 
     while(True):
+        alarmStatus = displayTitle(domoticz, alarmStatus)
         displayDomoticzStatus(domoticz)
         key = keypad.getKey()
         if(key != keypad.NULL):
@@ -105,7 +124,7 @@ def loop(domoticzUsername, domoticzPassword):
             
 if __name__ == '__main__':
 
-    my_parser = argparse.ArgumentParser(description='List the content of a folder')
+    my_parser = argparse.ArgumentParser(description='Python module to connect LCD2004 and keypad to Domoticz')
     my_parser.add_argument('username',
                            metavar='username',
                            type=str,
@@ -114,12 +133,22 @@ if __name__ == '__main__':
                            metavar='password',
                            type=str,
                            help='password')
+    my_parser.add_argument('--hostname',
+                           metavar='hostname',
+                           type=str,
+                           help='hostname',
+                           default='localhost')
+    my_parser.add_argument('--port',
+                           metavar='port',
+                           type=str,
+                           help='port',
+                           default='8080')
 
     # Execute the parse_args() method
     args = my_parser.parse_args()
 
     try:
-        loop(args.username, args.password)
+        loop(args.hostname, args.port, args.username, args.password)
     except KeyboardInterrupt:
         GPIO.cleanup()
         lcd.clear()
