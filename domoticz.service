@@ -1,0 +1,22 @@
+[Unit]
+       Description=domoticz_service
+[Service]
+       #User=domoticz
+       #Group=domoticz
+       ExecStart=/home/pi/domoticz-custom-startup.sh
+       WorkingDirectory=/home/pi
+       #        
+       # Give the right to open priviliged ports. This allows you to run on a port <1024 without root permissions (user/group setting above)
+       #
+       # The following line is for pre-16.04 systems.
+       # ExecStartPre=setcap 'cap_net_bind_service=+ep' /home/domoticz/domoticz/domoticz
+       #
+       # The below works on Ubuntu 16.04 LTS
+       # CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+       #
+       # The following works on Ubuntu 18.04
+       # AmbientCapabilities=CAP_NET_BIND_SERVICE
+       #
+       Restart=always
+[Install]
+       WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+[Unit]
+       Description=Domoticz-Keypad-LCD service
+[Service]
+       ExecStart=python3 /home/pi/projets/DomoticzKeypadLCD/main.py <username> <password>
+       WorkingDirectory=/home/pi       
+       Restart=always
+[Install]
+       WantedBy=multi-user.target
